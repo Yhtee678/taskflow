@@ -1,40 +1,100 @@
 # TaskFlow
 
-TaskFlow is a lightweight assignment planner for a small USM student group. It helps members organize assignments, divide work, track progress, and see upcoming deadlines in one place.
+TaskFlow is a lightweight, collaborative project and task management web application. It gives each person a clear view of their own responsibilities while making work across a shared project transparent. Its workflow combines structured task lists, editable task guidance and checklists, project membership, deadline tracking, and team availability planning.
 
-> Status: Planning / Phase 0. This repository is a fresh implementation. Features listed below are planned, not yet available.
+> **Project status:** Planning / documentation baseline. The application is not yet implemented. Screens in Figma are design references, not proof of working functionality.
 
-## Scope
+## Core workflow
 
-- One shared group workspace with a fixed set of approved members (not hard-coded to five).
-- Multiple assignments/projects in the same workspace.
-- Sections, tasks, and checkable task steps.
-- Task assignment, due dates, status, and basic progress views.
-- My Tasks, All Tasks, and Overview.
+1. Sign in with Google using Supabase Auth. A persisted session normally avoids repeated sign-ins.
+2. Land on **My Tasks**, showing tasks assigned to you across projects you belong to.
+3. Open **My Projects** and select a project.
+4. In the selected project, review **Overview**, **All Tasks**, **Members**, **Deadline Calendar**, and **Availability**.
+5. Create or edit sections and tasks; assign tasks to project members; maintain steps, guidance, and resource links.
+6. Check team deadlines and record time ranges when you are available to meet or collaborate.
 
-**Out of scope for the MVP:** public registration, workspace creation/invitations, multi-workspace SaaS, billing, complex role hierarchies, and automated reminders. Availability/calendar and realtime enhancements may be considered after the core planner works.
+**Transparency model:** Members of a project can view and collaboratively edit all tasks in that project, regardless of assignee. The assignee indicates responsibility, not exclusive editing permission. People outside the project must not access its data.
 
-## Planned stack
+## Technology
 
-- React + TypeScript + Vite
-- Tailwind CSS + shadcn/ui
-- Supabase Auth (Google sign-in), PostgreSQL, and Row Level Security (RLS)
-- Vitest for focused tests
+| Layer | Choice |
+| --- | --- |
+| Web application | React + TypeScript + Vite |
+| Routing | React Router |
+| UI | Tailwind CSS + shadcn/ui |
+| Identity | Supabase Auth, Google OAuth |
+| Data | Supabase PostgreSQL |
+| Authorization | PostgreSQL Row Level Security (RLS) |
+| Data access | `@supabase/supabase-js` directly from the browser |
+| Validation | TypeScript types and Zod where useful |
+| Testing | Vitest + React Testing Library; authorization/database tests |
+| Deployment (later) | Vercel or Netlify + hosted Supabase |
 
-No Google Apps Script or Google Sheets backend. No Next.js, Express, Prisma, or Drizzle for this version.
+No dedicated Node/Express/Nest backend, Next.js, Prisma, Drizzle, Redux, Docker, Google Apps Script, or Google Sheets is planned for v1. Supabase is the backend service; the browser must never contain a service-role key.
 
-## Local setup
+## Design reference
 
-Phase 0 has not yet initialized the application. Once it is scaffolded, this section will contain verified installation, environment configuration, and run commands. Do not invent commands or claim that the app is running before verification.
+**Source of truth:** [TaskFlow Figma](https://www.figma.com/design/oOU4WPTBqP6EdO5YIiGfsx)
 
-Never commit Supabase secrets. Only browser-safe public/publishable keys may be used in the frontend; authorization must be enforced in the database.
+The file contains nine screens: My Tasks, Task Details, Overview, All Tasks, Availability, Sign in, My Projects, Project Members, and Deadline Calendar. The existing restrained, compact design language is intentional. Implement it faithfully; do not replace it with a generic dashboard. See `AGENTS.md` for UI guardrails.
 
-## Documentation
+## Documentation map
 
-- [Requirements](docs/requirements.md)
-- [Development plan](docs/development-plan.md)
-- [Agent instructions](AGENTS.md)
+- [`docs/requirements.md`](docs/requirements.md) — user journeys, permissions, functional requirements, acceptance criteria, and non-goals.
+- [`docs/architecture.md`](docs/architecture.md) — components, data model, RLS, queries, validation, and security.
+- [`docs/development-plan.md`](docs/development-plan.md) — ordered implementation phases and quality gates.
+- [`AGENTS.md`](AGENTS.md) — mandatory instructions for coding agents and contributors.
 
-## Project history
+When documents differ, resolve the discrepancy before implementation. Never infer product behavior solely from a mockup.
 
-An earlier prototype used Google Apps Script and Google Sheets. It was discontinued because of latency, development friction, and maintainability concerns. The new implementation intentionally starts with a simpler React + Supabase architecture.
+## Getting started (after Phase 1 scaffolding)
+
+Prerequisites: supported Node.js LTS, npm, a Supabase project, and Google OAuth configuration in Supabase. Exact commands may be adjusted during scaffolding and must be kept accurate as the repository evolves.
+
+```bash
+npm install
+cp .env.example .env.local
+npm run dev
+```
+
+Expected environment variables:
+
+```dotenv
+VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+VITE_SUPABASE_ANON_KEY=YOUR_SUPABASE_PUBLISHABLE_OR_ANON_KEY
+```
+
+These browser-exposed values are **not** secrets. Security depends on correct Supabase Auth, database constraints, and RLS. Never commit `.env.local`, access tokens, credentials, or service-role keys. Google OAuth client secrets are configured with the identity provider/Supabase, not in Vite client variables.
+
+Planned scripts: `dev`, `build`, `preview`, `lint`, `typecheck`, and `test`. Do not claim scripts exist before scaffolding; update this section when they are created.
+
+### Supabase setup checklist
+
+1. Create a Supabase project and record its project URL and browser publishable/anon key.
+2. Enable Google OAuth and configure authorized redirect URIs for local development and the eventual deployed domain.
+3. Apply version-controlled SQL migrations for schema, constraints, indexes, policies, and narrowly scoped database functions.
+4. Verify policies using at least two distinct signed-in test users and two projects; test both authorized and unauthorized operations.
+5. Configure development URLs and redirect allowlists. Do not enable production deployment until approved.
+
+## Version 1 boundaries
+
+**Included:** authentication, project-based membership, project selection, cross-project My Tasks, project overview, sections/tasks, assignees, steps, guidance, reference URLs, member management, deadline calendar, and shared time-slot availability.
+
+**Deferred:** in-app notifications, email reminders, push notifications, realtime subscriptions, Kanban view, external calendar sync, file uploads, complex permissions, and advanced analytics.
+
+A signed-in account does not automatically belong to any project. Project membership is explicitly granted by a project leader. A newly created project automatically grants its creator the leader role.
+
+## Contribution approach
+
+Work in small, reviewable changes. Every feature should include appropriate tests and, for database work, migration and RLS coverage. Preserve meaningful Git history. Do not fabricate contributions or claim unimplemented features are complete. No automated deployment or unsolicited commits without explicit approval.
+
+## Current status
+
+- [x] Requirements and architecture baseline drafted
+- [x] Nine Figma screen references available
+- [ ] React/Vite application scaffolded
+- [ ] Supabase project and database configured
+- [ ] Authentication and project membership implemented
+- [ ] Task management implemented
+- [ ] Calendars and availability implemented
+- [ ] Acceptance and security tests passing
