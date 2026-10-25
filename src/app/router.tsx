@@ -11,37 +11,44 @@ import { TaskDetailPage } from '@/pages/task-detail-page';
 import { MembersPage } from '@/pages/members-page';
 import { DeadlineCalendarPage } from '@/pages/deadline-calendar-page';
 import { AvailabilityPage } from '@/pages/availability-page';
+import { ProtectedRoute, AuthCallbackPage } from '@/features/auth/auth-routes';
 export const routes = [
   {
     errorElement: <RouteError />,
     children: [
       { path: '/login', element: <LoginPage /> },
+      { path: '/auth/callback', element: <AuthCallbackPage /> },
       {
-        element: <AppShell />,
+        element: <ProtectedRoute />,
         children: [
-          { path: '/', element: <Navigate to="/my-tasks" replace /> },
-          { path: '/my-tasks', element: <MyTasksPage /> },
-          { path: '/projects', element: <ProjectsPage /> },
           {
-            path: '/projects/:projectId',
-            element: <ProjectRoute />,
+            element: <AppShell />,
             children: [
-              { index: true, element: <Navigate to="overview" replace /> },
-              { path: 'overview', element: <OverviewPage /> },
-              { path: 'tasks', element: <AllTasksPage /> },
-              { path: 'tasks/:id', element: <TaskDetailPage /> },
-              { path: 'members', element: <MembersPage /> },
-              { path: 'calendar', element: <DeadlineCalendarPage /> },
-              { path: 'availability', element: <AvailabilityPage /> },
+              { path: '/', element: <Navigate to="/my-tasks" replace /> },
+              { path: '/my-tasks', element: <MyTasksPage /> },
+              { path: '/projects', element: <ProjectsPage /> },
+              {
+                path: '/projects/:projectId',
+                element: <ProjectRoute />,
+                children: [
+                  { index: true, element: <Navigate to="overview" replace /> },
+                  { path: 'overview', element: <OverviewPage /> },
+                  { path: 'tasks', element: <AllTasksPage /> },
+                  { path: 'tasks/:id', element: <TaskDetailPage /> },
+                  { path: 'members', element: <MembersPage /> },
+                  { path: 'calendar', element: <DeadlineCalendarPage /> },
+                  { path: 'availability', element: <AvailabilityPage /> },
+                ],
+              },
+              {
+                path: '*',
+                element: (
+                  <EmptyState title="Page not found">
+                    <Link to="/my-tasks">Return to My Tasks</Link>
+                  </EmptyState>
+                ),
+              },
             ],
-          },
-          {
-            path: '*',
-            element: (
-              <EmptyState title="Page not found">
-                <Link to="/my-tasks">Return to My Tasks</Link>
-              </EmptyState>
-            ),
           },
         ],
       },

@@ -3,11 +3,26 @@ import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { describe, it, expect } from 'vitest';
 import { routes } from '@/app/router';
+import { AuthContext } from '@/features/auth/auth-context';
+import { testSession } from './auth-fixtures';
 function visit(path: string) {
   return render(
-    <RouterProvider
-      router={createMemoryRouter(routes, { initialEntries: [path] })}
-    />,
+    <AuthContext.Provider
+      value={{
+        session: path === '/login' ? null : testSession,
+        loading: false,
+        busy: false,
+        error: null,
+        configurationError: null,
+        signIn: async () => {},
+        signOut: async () => {},
+        retry: () => {},
+      }}
+    >
+      <RouterProvider
+        router={createMemoryRouter(routes, { initialEntries: [path] })}
+      />
+    </AuthContext.Provider>,
   );
 }
 describe('Phase 1 routes', () => {

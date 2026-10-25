@@ -76,6 +76,8 @@ Each task may have zero or one assignee who is a member of its project.
 Each availability slot belongs to one project and its owning member.
 ```
 
+Availability slots record **available/free time**, with an inclusive start and exclusive end; an absent slot makes no claim about whether the person is busy. Intersect these free-time ranges to find common availability. No busy/free flag is needed.
+
 ### Critical integrity details
 
 - Add `UNIQUE (project_id,id)` to `sections` and `tasks`, then `FOREIGN KEY (project_id,section_id) REFERENCES sections(project_id,id)` and equivalent child-to-task composite FKs. This prevents a row from pointing to another project's section/task.
@@ -121,11 +123,13 @@ Define the function owner and EXECUTE privileges deliberately; restrict invocati
 | `task_steps` | member | member | member | member |
 | `task_resources` | member | member | member | member |
 | `availability_slots` | member | authenticated member inserting own `user_id` | slot owner still member | slot owner still member |
-| `profiles` | authenticated self, plus minimal directory lookup as needed | self via onboarding | self | generally no client delete |
+| `profiles` | self only; teammate names through project-scoped display RPC | Auth provisioning trigger | self display name only | no client delete |
 
 For inserts/updates, use `WITH CHECK` as well as `USING`; otherwise a user may move a record to an unauthorized project or change `user_id`. For child tables, RLS membership check must be based on their validated `project_id`.
 
 **Important profile privacy:** Do not expose the entire users table or all registered users' emails. To support leader adding an existing user by email, create a narrowly scoped `add_project_member_by_email(project_id,email)` RPC that looks up the email on the trusted database side and returns only a success/controlled error. The RPC must validate the caller is project leader, normalize input, prevent duplicate membership, and not leak unrelated account details through general search. Decide on error wording that balances usability and account enumeration risk.
+
+For Members and Assignee interfaces, `get_project_member_display(p_project_id)` returns only `(user_id, display_name)` for the requested project's roster, including the caller. It requires a non-null `auth.uid()` and current membership; missing, unknown and unauthorized projects receive the same permission error. It accepts no caller/user ID or email-search argument. Direct `profiles` reads remain self-only so teammate emails and creation timestamps stay private. Member roles are already available through the membership table's RLS; future UI can combine those records by user ID. Removal immediately blocks subsequent roster RPC calls and removes the person from roster results. The trusted `postgres` owner executes this narrowly scoped, read-only `SECURITY DEFINER` projection with `search_path = ''`, schema-qualified relations and authenticated-only EXECUTE privileges.
 
 ### Controlled operations (RPC / SQL functions)
 
@@ -133,6 +137,7 @@ For inserts/updates, use `WITH CHECK` as well as `USING`; otherwise a user may m
 2. `add_project_member_by_email(project_id,email)` — leader only; find registered user, add `member`, handle duplicates; no email invitations in v1.
 3. `remove_project_member(project_id,user_id)` — leader only; cannot remove leader; delete target's availability, unassign tasks, remove membership atomically.
 4. `delete_project(project_id)` — leader only; deletes project with cascades, then no membership remains.
+5. `get_project_member_display(p_project_id)` — member only; returns project-scoped user IDs/display names without exposing private profile fields.
 
 Function parameters must not allow arbitrary `actor_user_id`; determine caller from `auth.uid()`. Grant EXECUTE narrowly and revoke default public privileges where appropriate. Write negative tests for every RPC.
 

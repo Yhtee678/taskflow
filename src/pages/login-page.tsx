@@ -1,7 +1,17 @@
-import { Link } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { CheckCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/features/auth/auth-context';
 export function LoginPage() {
+  const { session, loading, busy, error, configurationError, signIn, retry } =
+    useAuth();
+  if (loading)
+    return (
+      <main className="login-page" role="status">
+        Checking your session…
+      </main>
+    );
+  if (session) return <Navigate to="/my-tasks" replace />;
   return (
     <main className="login-page">
       <div className="login-panel">
@@ -11,17 +21,25 @@ export function LoginPage() {
         </div>
         <h1>Sign in to TaskFlow</h1>
         <p>A shared place for your projects, tasks, and team.</p>
-        <Button variant="outline" className="google-button" disabled>
-          Continue with Google
+        <Button
+          variant="outline"
+          className="google-button"
+          disabled={busy || !!configurationError}
+          onClick={() => void signIn()}
+        >
+          {busy ? 'Connecting…' : 'Continue with Google'}
         </Button>
+        <p className="login-note">Sign in securely with your Google account.</p>
+        {(configurationError || error) && (
+          <p role="alert">{configurationError ?? error}</p>
+        )}
+        {error && !configurationError && (
+          <Button variant="ghost" onClick={retry}>
+            Retry session check
+          </Button>
+        )}
         <p className="login-note">
-          Google sign-in will be connected in Phase 2.
-        </p>
-        <Button asChild>
-          <Link to="/my-tasks">Explore the frontend preview</Link>
-        </Button>
-        <p className="login-note">
-          Mock data only. No account or session is created.
+          Project and task screens still contain fictional demo data.
         </p>
       </div>
     </main>

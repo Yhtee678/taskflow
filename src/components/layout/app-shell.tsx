@@ -19,7 +19,20 @@ import {
 } from 'lucide-react';
 import { projects } from '@/features/projects/mock-data';
 import { SelectedProjectContext } from './project-context';
+import { useAuth } from '@/features/auth/auth-context';
+import { Button } from '@/components/ui/button';
 export function AppShell() {
+  const { session, signOut, busy, error } = useAuth();
+  const name =
+    typeof session?.user.user_metadata.full_name === 'string'
+      ? session.user.user_metadata.full_name.slice(0, 80)
+      : (session?.user.email ?? 'Signed-in user');
+  const initials = name
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part: string) => part[0])
+    .join('')
+    .toUpperCase();
   const { projectId } = useParams();
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -132,19 +145,27 @@ export function AppShell() {
             ))}
           </nav>
           <div className="sidebar-footer">
-            <span className="avatar">AT</span>
+            <span className="avatar">{initials}</span>
             <div>
-              <strong>Alex Tan</strong>
-              <small>Demo profile</small>
+              <strong>{name}</strong>
+              <small>Authenticated account</small>
             </div>
-            <Link to="/login">Sign in</Link>
+            <Button
+              variant="ghost"
+              disabled={busy}
+              onClick={() => void signOut()}
+            >
+              {busy ? 'Signing out…' : 'Sign out'}
+            </Button>
           </div>
         </aside>
         <div className="workspace">
           <div className="demo-banner">
-            Frontend preview · Mock data only · Changes are not saved
+            Signed in · Projects, tasks and team members are fictional demo data
+            for Alex Tan · Changes are not saved
           </div>
           <main id="main" tabIndex={-1}>
+            {error && <p role="alert">{error}</p>}
             <Outlet />
           </main>
           <footer className="workspace-footer">
@@ -184,9 +205,13 @@ export function AppShell() {
                   </NavLink>
                 ))}
             </nav>
-            <Link to="/login" onClick={closeMore}>
-              Sign in
-            </Link>
+            <Button
+              variant="ghost"
+              disabled={busy}
+              onClick={() => void signOut()}
+            >
+              {busy ? 'Signing out…' : 'Sign out'}
+            </Button>
           </section>
         )}
         <nav className="mobile-bottom-nav" aria-label="Mobile navigation">
