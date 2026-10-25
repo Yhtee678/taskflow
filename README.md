@@ -1,8 +1,8 @@
-# TaskFlow
+﻿# TaskFlow
 
 TaskFlow is a lightweight, collaborative project and task management web application. It gives each person a clear view of their own responsibilities while making work across a shared project transparent. Its workflow combines structured task lists, editable task guidance and checklists, project membership, deadline tracking, and team availability planning.
 
-> **Project status:** Planning / documentation baseline. The application is not yet implemented. Screens in Figma are design references, not proof of working functionality.
+> **Project status:** Phase 1 frontend preview implemented with fictional mock data. Authentication, persistence, and backend authorization are not implemented. Figma fidelity awaits visual review.
 
 ## Core workflow
 
@@ -17,18 +17,18 @@ TaskFlow is a lightweight, collaborative project and task management web applica
 
 ## Technology
 
-| Layer | Choice |
-| --- | --- |
-| Web application | React + TypeScript + Vite |
-| Routing | React Router |
-| UI | Tailwind CSS + shadcn/ui |
-| Identity | Supabase Auth, Google OAuth |
-| Data | Supabase PostgreSQL |
-| Authorization | PostgreSQL Row Level Security (RLS) |
-| Data access | `@supabase/supabase-js` directly from the browser |
-| Validation | TypeScript types and Zod where useful |
-| Testing | Vitest + React Testing Library; authorization/database tests |
-| Deployment (later) | Vercel or Netlify + hosted Supabase |
+| Layer              | Choice                                                       |
+| ------------------ | ------------------------------------------------------------ |
+| Web application    | React + TypeScript + Vite                                    |
+| Routing            | React Router                                                 |
+| UI                 | Tailwind CSS + shadcn/ui                                     |
+| Identity           | Supabase Auth, Google OAuth                                  |
+| Data               | Supabase PostgreSQL                                          |
+| Authorization      | PostgreSQL Row Level Security (RLS)                          |
+| Data access        | `@supabase/supabase-js` directly from the browser            |
+| Validation         | TypeScript types and Zod where useful                        |
+| Testing            | Vitest + React Testing Library; authorization/database tests |
+| Deployment (later) | Vercel or Netlify + hosted Supabase                          |
 
 No dedicated Node/Express/Nest backend, Next.js, Prisma, Drizzle, Redux, Docker, Google Apps Script, or Google Sheets is planned for v1. Supabase is the backend service; the browser must never contain a service-role key.
 
@@ -47,26 +47,18 @@ The file contains nine screens: My Tasks, Task Details, Overview, All Tasks, Ava
 
 When documents differ, resolve the discrepancy before implementation. Never infer product behavior solely from a mockup.
 
-## Getting started (after Phase 1 scaffolding)
+## Getting started
 
-Prerequisites: supported Node.js LTS, npm, a Supabase project, and Google OAuth configuration in Supabase. Exact commands may be adjusted during scaffolding and must be kept accurate as the repository evolves.
+Use Node.js 22.12+ and npm. No Supabase account or environment variables are required for the Phase 1 preview.
 
-```bash
+```sh
 npm install
-cp .env.example .env.local
 npm run dev
 ```
 
-Expected environment variables:
+Scripts: `dev`, `build`, `preview`, `lint`, `typecheck`, `test`, `format`, and `format:check`. On Windows, use `npm.cmd` if PowerShell blocks `npm.ps1`.
 
-```dotenv
-VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-VITE_SUPABASE_ANON_KEY=YOUR_SUPABASE_PUBLISHABLE_OR_ANON_KEY
-```
-
-These browser-exposed values are **not** secrets. Security depends on correct Supabase Auth, database constraints, and RLS. Never commit `.env.local`, access tokens, credentials, or service-role keys. Google OAuth client secrets are configured with the identity provider/Supabase, not in Vite client variables.
-
-Planned scripts: `dev`, `build`, `preview`, `lint`, `typecheck`, and `test`. Do not claim scripts exist before scaffolding; update this section when they are created.
+See [Phase 1 notes](docs/phase-1.md) for routes, structure, scope and visual review limitations. The following Supabase checklist is future Phase 2 work.
 
 ### Supabase setup checklist
 
@@ -92,7 +84,7 @@ Work in small, reviewable changes. Every feature should include appropriate test
 
 - [x] Requirements and architecture baseline drafted
 - [x] Nine Figma screen references available
-- [ ] React/Vite application scaffolded
+- [x] React/Vite application scaffolded (mock frontend preview)
 - [ ] Supabase project and database configured
 - [ ] Authentication and project membership implemented
 - [ ] Task management implemented
