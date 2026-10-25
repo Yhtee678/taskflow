@@ -179,6 +179,17 @@ progress::-moz-progress-bar {
 .sidebar-footer small {
   display: block;
 }
+.sidebar-footer > div {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.sidebar-footer {
+  flex-wrap: wrap;
+}
+.sidebar-footer > button {
+  font-size: 13px;
+}
 .sidebar-footer strong {
   font-size: 14px;
   font-weight: 500;

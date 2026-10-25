@@ -2,7 +2,7 @@
 
 TaskFlow is a lightweight, collaborative project and task management web application. It gives each person a clear view of their own responsibilities while making work across a shared project transparent. Its workflow combines structured task lists, editable task guidance and checklists, project membership, deadline tracking, and team availability planning.
 
-> **Project status:** Phase 1 frontend preview implemented with fictional mock data. Authentication, persistence, and backend authorization are not implemented. Figma fidelity awaits visual review.
+> **Project status:** Phase 2 authentication integration and Supabase schema/RLS migration are implemented locally. Provider setup, migration application, real Google login and database authorization verification remain pending. Project/task screens still use fictional mock data; Figma fidelity awaits visual review.
 
 ## Core workflow
 
@@ -49,7 +49,7 @@ When documents differ, resolve the discrepancy before implementation. Never infe
 
 ## Getting started
 
-Use Node.js 22.12+ and npm. No Supabase account or environment variables are required for the Phase 1 preview.
+Use Node.js 22.12+ and npm. Copy `.env.example` to `.env.local`, set your Supabase URL and Publishable Key, and configure Google OAuth redirects as described in [Phase 2 setup and verification](docs/phase-2.md). No secrets belong in Vite variables. Application routes now require sign-in.
 
 ```sh
 npm install
@@ -58,11 +58,11 @@ npm run dev
 
 Scripts: `dev`, `build`, `preview`, `lint`, `typecheck`, `test`, `format`, and `format:check`. On Windows, use `npm.cmd` if PowerShell blocks `npm.ps1`.
 
-See [Phase 1 notes](docs/phase-1.md) for routes, structure, scope and visual review limitations. The following Supabase checklist is future Phase 2 work.
+See [Phase 1 notes](docs/phase-1.md) for the UI baseline and [Phase 2 notes](docs/phase-2.md) for auth behavior, the migration, SQL authorization tests and outstanding manual checks. The application does not automatically apply migrations.
 
 ### Supabase setup checklist
 
-1. Create a Supabase project and record its project URL and browser publishable/anon key.
+1. Create a Supabase project and record its project URL and browser Publishable Key.
 2. Enable Google OAuth and configure authorized redirect URIs for local development and the eventual deployed domain.
 3. Apply version-controlled SQL migrations for schema, constraints, indexes, policies, and narrowly scoped database functions.
 4. Verify policies using at least two distinct signed-in test users and two projects; test both authorized and unauthorized operations.
@@ -86,7 +86,9 @@ Work in small, reviewable changes. Every feature should include appropriate test
 - [x] Nine Figma screen references available
 - [x] React/Vite application scaffolded (mock frontend preview)
 - [ ] Supabase project and database configured
-- [ ] Authentication and project membership implemented
+- [x] Authentication integration implemented (real provider journey pending verification)
+- [x] Schema, RLS and project lifecycle RPC migration prepared (database execution pending)
+- [ ] Project membership UI connected (Phase 3)
 - [ ] Task management implemented
 - [ ] Calendars and availability implemented
 - [ ] Acceptance and security tests passing
