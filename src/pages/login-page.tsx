@@ -39,7 +39,7 @@ export function LoginPage() {
           </Button>
         )}
         <p className="login-note">
-          Project and task screens still contain fictional demo data.
+          Your projects are available after signing in.
         </p>
       </div>
     </main>

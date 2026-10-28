@@ -1,8 +1,8 @@
-﻿# TaskFlow
+# TaskFlow
 
 TaskFlow is a lightweight, collaborative project and task management web application. It gives each person a clear view of their own responsibilities while making work across a shared project transparent. Its workflow combines structured task lists, editable task guidance and checklists, project membership, deadline tracking, and team availability planning.
 
-> **Project status:** Phase 2 authentication integration and Supabase schema/RLS migration are implemented locally. Provider setup, migration application, real Google login and database authorization verification remain pending. Project/task screens still use fictional mock data; Figma fidelity awaits visual review.
+> **Project status:** Phase 3 real-data integration is implemented locally. Apply the Phase 3 migration before use. Live persistence and authorization remain unverified; see [Phase 3 setup and acceptance](docs/phase-3.md).
 
 ## Core workflow
 
@@ -82,13 +82,21 @@ Work in small, reviewable changes. Every feature should include appropriate test
 
 ## Current status
 
-- [x] Requirements and architecture baseline drafted
-- [x] Nine Figma screen references available
-- [x] React/Vite application scaffolded (mock frontend preview)
-- [ ] Supabase project and database configured
-- [x] Authentication integration implemented (real provider journey pending verification)
-- [x] Schema, RLS and project lifecycle RPC migration prepared (database execution pending)
-- [ ] Project membership UI connected (Phase 3)
-- [ ] Task management implemented
-- [ ] Calendars and availability implemented
-- [ ] Acceptance and security tests passing
+- Phase 2 database and authentication checks succeeded on the disposable project (owner-reported).
+- Phase 3 integration is implemented locally across existing planner screens.
+- Phase 3 migration application, database tests and live CRUD acceptance remain pending.
+- See [Phase 3 notes](docs/phase-3.md) for migration instructions and verification limits.
+
+## Calendar enhancement
+
+See [Calendar setup and manual migration order](docs/calendar-scheduling.md) before using personal Busy events, Suggested Availability, team occupancy and the Overview mini calendar. The additive Calendar migration and its SQL tests have not been executed remotely by the implementation agent.
+
+## Task collaboration
+
+See [Comments and in-app notifications](docs/comments-notifications.md) for the new incremental migration, authorization test and manual setup. Live database/API verification remains pending.
+
+## Project Activity and Discussion
+
+Overview now includes shared Recent Activity and Project Discussion. See [setup, migration order and verification](docs/project-activity-discussion.md). Apply the new incremental migration manually; live database verification remains pending.
+
+See [workspace and Calendar UI refinement](docs/ui-refinement.md) for the consolidated Calendar route, compact previews, account menu and action-feedback behavior. This UI increment requires no database migration.

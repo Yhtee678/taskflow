@@ -4,15 +4,17 @@ export function PageHeader({
   title,
   description,
   children,
+  showProject = true,
 }: {
   title: string;
   description: string;
   children?: ReactNode;
+  showProject?: boolean;
 }) {
   const project = useContext(SelectedProjectContext);
   return (
     <>
-      {project && title !== 'My Projects' && (
+      {showProject && project && title !== 'My Projects' && (
         <p className="project-heading" aria-label="Current project">
           {project.name}
         </p>
