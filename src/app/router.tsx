@@ -1,5 +1,5 @@
 import { createBrowserRouter, Link, Navigate } from 'react-router-dom';
-import { AppShell } from '@/components/layout/app-shell';
+import { AuthenticatedApp } from './workspace-provider';
 import { EmptyState } from '@/components/ui/page-header';
 import { ProjectRoute, RouteError } from './route-boundaries';
 import { LoginPage } from '@/pages/login-page';
@@ -11,6 +11,7 @@ import { TaskDetailPage } from '@/pages/task-detail-page';
 import { MembersPage } from '@/pages/members-page';
 import { DeadlineCalendarPage } from '@/pages/deadline-calendar-page';
 import { AvailabilityPage } from '@/pages/availability-page';
+import { CalendarPage } from '@/pages/calendar-page';
 import { ProtectedRoute, AuthCallbackPage } from '@/features/auth/auth-routes';
 export const routes = [
   {
@@ -22,10 +23,15 @@ export const routes = [
         element: <ProtectedRoute />,
         children: [
           {
-            element: <AppShell />,
+            element: <AuthenticatedApp />,
             children: [
               { path: '/', element: <Navigate to="/my-tasks" replace /> },
               { path: '/my-tasks', element: <MyTasksPage /> },
+              { path: '/calendar', element: <CalendarPage /> },
+              {
+                path: '/projects/:projectId/calendar',
+                element: <DeadlineCalendarPage />,
+              },
               { path: '/projects', element: <ProjectsPage /> },
               {
                 path: '/projects/:projectId',
@@ -36,7 +42,6 @@ export const routes = [
                   { path: 'tasks', element: <AllTasksPage /> },
                   { path: 'tasks/:id', element: <TaskDetailPage /> },
                   { path: 'members', element: <MembersPage /> },
-                  { path: 'calendar', element: <DeadlineCalendarPage /> },
                   { path: 'availability', element: <AvailabilityPage /> },
                 ],
               },

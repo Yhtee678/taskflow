@@ -1,16 +1,23 @@
 import { Link, Outlet, useParams, useRouteError } from 'react-router-dom';
-import { EmptyState } from '@/components/ui/page-header';
-import { projects } from '@/features/projects/mock-data';
+import { useWorkspace } from './workspace-context';
+import { useRemote } from './use-remote';
+import { loadProject } from '@/features/tasks/queries';
+import { RemoteState } from '@/components/ui/remote-state';
 export function ProjectRoute() {
   const { projectId } = useParams();
-  const project = projects.find((p) => p.id === projectId);
-  return project ? (
-    <Outlet key={project.id} context={project} />
-  ) : (
-    <EmptyState title="Project not found">
-      <Link to="/projects">Return to My Projects</Link>
-    </EmptyState>
+  const { revision, refresh } = useWorkspace();
+  const state = useRemote(`${projectId}:${revision}`, () =>
+    loadProject(projectId!),
   );
+  if (!state.data)
+    return (
+      <>
+        {!state.loading && <h2>Project unavailable</h2>}
+        <RemoteState state={state} retry={refresh} />
+        {!state.loading && <Link to="/projects">Return to My Projects</Link>}
+      </>
+    );
+  return <Outlet key={projectId} context={state.data} />;
 }
 export function RouteError() {
   const error = useRouteError();

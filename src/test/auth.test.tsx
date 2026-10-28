@@ -1,3 +1,4 @@
+import './data-api-mocks';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
@@ -27,7 +28,7 @@ function visit(path = '/my-tasks') {
   return { router, ...view };
 }
 beforeEach(() => {
-  vi.resetAllMocks();
+  vi.clearAllMocks();
   getSession.mockResolvedValue({ data: { session: null }, error: null });
   signInWithOAuth.mockResolvedValue({
     data: { url: 'https://accounts.google.com/' },
@@ -84,9 +85,7 @@ describe('Supabase authentication integration (SDK mocked)', () => {
     ).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/my-tasks');
     expect(screen.getByText('Test User')).toBeInTheDocument();
-    expect(
-      screen.getByText(/fictional demo data for Alex Tan/),
-    ).toBeInTheDocument();
+    expect(screen.queryByText(/fictional demo data/)).not.toBeInTheDocument();
   });
   it('starts Google OAuth with the same-origin callback', async () => {
     const user = userEvent.setup();
@@ -122,7 +121,10 @@ describe('Supabase authentication integration (SDK mocked)', () => {
     });
     const view = visit();
     await screen.findByRole('heading', { name: 'My Tasks', level: 1 });
-    await user.click(screen.getByRole('button', { name: 'Sign out' }));
+    await user.click(
+      screen.getByRole('button', { name: 'Account: Test User' }),
+    );
+    await user.click(screen.getByRole('menuitem', { name: 'Sign out' }));
     expect(signOut).toHaveBeenCalledWith({ scope: 'local' });
     expect(
       await screen.findByRole('heading', { name: 'Sign in to TaskFlow' }),
@@ -143,12 +145,18 @@ describe('Supabase authentication integration (SDK mocked)', () => {
     signOut.mockResolvedValueOnce({ error: new Error('offline') });
     visit();
     await screen.findByRole('heading', { name: 'My Tasks', level: 1 });
-    await user.click(screen.getByRole('button', { name: 'Sign out' }));
+    await user.click(
+      screen.getByRole('button', { name: 'Account: Test User' }),
+    );
+    await user.click(screen.getByRole('menuitem', { name: 'Sign out' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Sign out failed',
     );
     expect(screen.getByText('Test User')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Sign out' }));
+    await user.click(
+      screen.getByRole('button', { name: 'Account: Test User' }),
+    );
+    await user.click(screen.getByRole('menuitem', { name: 'Sign out' }));
     expect(
       await screen.findByRole('heading', { name: 'Sign in to TaskFlow' }),
     ).toBeInTheDocument();

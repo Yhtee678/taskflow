@@ -197,3 +197,7 @@ Do not start backlog items without an explicit scope decision.
 ## First Codex assignment (recommended)
 
 > Read `README.md`, `AGENTS.md`, and all files in `docs/` before editing. Implement **Phase 1 only**: scaffold React + TypeScript + Vite, configure React Router, Tailwind, shadcn/ui, lint/typecheck/test/build, and create the responsive app shell aligned with the existing nine-screen Figma design. Use mock data for page shells; do not create database tables, enable OAuth, deploy, commit, or push. Report all files changed, commands run, test results, and anything needing approval.
+
+## Owner-expanded Phase 3 scope
+
+The owner requested integration of all existing planner screens, including tasks, calendars and availability originally scheduled later. See [Phase 3 notes](phase-3.md) for scope, migration prerequisites and outstanding live acceptance. This does not authorize deployment or imply hosted verification.

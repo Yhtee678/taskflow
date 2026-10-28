@@ -1,4 +1,4 @@
 import { createContext } from 'react';
-import type { Project } from '@/types/domain';
+import type { ProjectRow } from '@/types/database';
 
-export const SelectedProjectContext = createContext<Project | null>(null);
+export const SelectedProjectContext = createContext<ProjectRow | null>(null);

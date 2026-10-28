@@ -38,7 +38,7 @@ No custom application server in v1. Do not use a browser service-role key. If fu
 /projects/:projectId/tasks      All Tasks by section
 /projects/:projectId/tasks/:id  Task Details (may render as panel/drawer)
 /projects/:projectId/members    Project Members
-/projects/:projectId/calendar   Deadline Calendar
+/projects/:projectId/calendar   Legacy redirect to /calendar?project=:projectId
 /projects/:projectId/availability  Team Availability
 ```
 
@@ -240,3 +240,19 @@ This is a suggested structure, not a mandate to create empty placeholder files. 
 ## 10. Deferred architecture
 
 Do not implement realtime channels, mail queues, scheduled reminders, browser push, file storage, serverless functions, or external integrations during MVP. If later requested, design them separately with explicit permissions, opt-in, delivery and deduplication rules.
+
+## Phase 3 integration
+
+The new migration adds task priority and atomic member-authorized section ordering. Membership remains unlimited through the unchanged Phase 2 leader-only RPCs. Existing RLS policies are unchanged. Types derive from migrations; feature queries and request-keyed React state refetch after mutations. See [implementation and migration notes](phase-3.md).
+
+## Calendar enhancement
+
+An additive migration introduces owner-only busy_events and bounded-window recurrence RPCs. Team occupancy is returned only after a database membership check and contains no private event details. Availability is a dynamic complement of merged Busy ranges, not duplicated stored data. Existing availability_slots remain compatible. See [Calendar storage and privacy](calendar-scheduling.md).
+
+## Comments and notifications increment
+
+The additive collaboration migration introduces task_comments, notifications, protected trigger generation and a caller-only deadline-reminder RPC. Same-project task FKs, current-member RLS, author/recipient column grants and membership cascades enforce privacy. No earlier migration, policy or lifecycle RPC is replaced. See [collaboration storage, recipient rules and authorization verification](comments-notifications.md).
+
+## Shared Project Activity and Discussion
+
+A new migration introduces project_activities and project_discussion_comments and routes existing activity triggers through one trusted recorder/fanout. Read-only project history is independent of recipient inboxes; discussion uses existing comment identity checks. Nullable task destinations and an optional activity FK extend notifications for discussion without changing RLS or reminders. See [storage, security and migration notes](project-activity-discussion.md).

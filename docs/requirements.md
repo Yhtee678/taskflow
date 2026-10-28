@@ -189,3 +189,19 @@ Google login email is a future notification address **only if the user opts in**
 - Whether overlapping availability should be shown as a separate suggested-meeting panel or highlighted directly in weekly grid.
 
 Resolve these during the relevant phase and update the requirements and schema together.
+
+## Phase 3 owner-approved additions
+
+Projects support unlimited members; there is no application-defined member cap. Task priority is Low, Normal (default), or High. See [Phase 3 integration](phase-3.md).
+
+## Calendar enhancement (owner requested)
+
+Personal busy events and dynamic Suggested Availability are the primary workflow. Team views share occupancy only, with private details protected by database authorization. Deadlines remain separate and never block time. Existing explicit free-time records are preserved. See [Calendar requirements and behavior](calendar-scheduling.md).
+
+## Owner-requested comments and in-app notifications
+
+The owner explicitly authorized task comments and the specified in-app activity center, superseding their earlier deferral only for this scope. Comments are chronological plain text, member-readable and author-deletable. Notification generation is database-enforced, with own inbox/read state and deduplicated 24-hour assignment reminders checked on opening/refresh. No external delivery or realtime is included. See [recipient rules, acceptance and setup](comments-notifications.md).
+
+## Owner-requested Project Activity and Discussion
+
+Overview gains selected-project shared history (including the actor), View More and plain-text discussion with own-only deletion. Discussion posts notify other current members through the existing Bell center. Activity is not derived from per-user notifications. Existing modules and development-phase ordering are preserved. See [behavior and acceptance](project-activity-discussion.md).

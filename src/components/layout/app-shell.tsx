@@ -17,16 +17,27 @@ import {
   Menu,
   Users,
 } from 'lucide-react';
-import { projects } from '@/features/projects/mock-data';
+import { useWorkspace } from '@/app/workspace-context';
+import { RemoteState } from '@/components/ui/remote-state';
+import { Modal } from '@/components/ui/modal';
+import { updateDisplayName } from '@/features/projects/queries';
+import { text } from '@/lib/data-client';
 import { SelectedProjectContext } from './project-context';
 import { useAuth } from '@/features/auth/auth-context';
 import { Button } from '@/components/ui/button';
+import { NotificationBell } from '@/features/notifications/notification-bell';
+import { AccountMenu } from './account-menu';
+import { ProjectPicker } from './project-picker';
+import { FeedbackToast } from '@/components/ui/feedback-toast';
 export function AppShell() {
   const { session, signOut, busy, error } = useAuth();
+  const { catalog, refresh, mutate, pending } = useWorkspace();
+  const projects = catalog.data?.projects ?? [];
+  const [editProfile, setEditProfile] = useState(false);
   const name =
-    typeof session?.user.user_metadata.full_name === 'string'
-      ? session.user.user_metadata.full_name.slice(0, 80)
-      : (session?.user.email ?? 'Signed-in user');
+    catalog.data?.profile.display_name ||
+    session?.user.email ||
+    'Signed-in user';
   const initials = name
     .split(/\s+/)
     .slice(0, 2)
@@ -35,39 +46,62 @@ export function AppShell() {
     .toUpperCase();
   const { projectId } = useParams();
   const navigate = useNavigate();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
+  const activeProjectId =
+    projectId ??
+    (pathname === '/calendar'
+      ? new URLSearchParams(search).get('project')
+      : null);
   const [open, setOpen] = useState(false);
-  const [selectedId, setSelectedId] = useState(projects[0].id);
+  const storageKey = `taskflow:selected-project:${session!.user.id}`;
+  const [selectedId, setSelectedId] = useState(() => {
+    try {
+      return localStorage.getItem(storageKey) ?? '';
+    } catch {
+      return '';
+    }
+  });
   const moreButton = useRef<HTMLButtonElement>(null);
   const selected =
-    projects.find((p) => p.id === (projectId ?? selectedId)) ?? projects[0];
+    (activeProjectId
+      ? projects.find((p) => p.id === activeProjectId)
+      : (projects.find((p) => p.id === selectedId) ?? projects[0])) ?? null;
   useEffect(() => {
     if (open) document.getElementById('more-project-picker')?.focus();
   }, [open]);
   useEffect(() => {
-    if (projects.some((p) => p.id === projectId)) setSelectedId(projectId!);
-  }, [projectId]);
+    if (selected) {
+      setSelectedId(selected.id);
+      try {
+        localStorage.setItem(storageKey, selected.id);
+      } catch {
+        /* Browser storage is optional. */
+      }
+    }
+  }, [selected, storageKey]);
   const switchProject = (id: string) => {
     setSelectedId(id);
     // Global screens retain their cross-project scope when context changes.
-    if (projectId) navigate(`/projects/${id}/overview`);
+    if (activeProjectId) navigate(`/projects/${id}/overview`);
   };
   const closeMore = () => {
     setOpen(false);
     document.getElementById('main')?.focus();
   };
-  const base = `/projects/${selected.id}`;
+  const base = selected ? `/projects/${selected.id}` : '/projects';
   const globalLinks = [
     { to: '/my-tasks', label: 'My Tasks', icon: CheckSquare },
     { to: '/projects', label: 'My Projects', icon: FolderOpen },
+    { to: '/calendar', label: 'Calendar', icon: CalendarDays },
   ];
-  const projectLinks = [
-    { to: `${base}/overview`, label: 'Overview', icon: LayoutList },
-    { to: `${base}/tasks`, label: 'All Tasks', icon: CheckSquare },
-    { to: `${base}/members`, label: 'Members', icon: Users },
-    { to: `${base}/calendar`, label: 'Deadline Calendar', icon: CalendarDays },
-    { to: `${base}/availability`, label: 'Availability', icon: Clock3 },
-  ];
+  const projectLinks = selected
+    ? [
+        { to: `${base}/overview`, label: 'Overview', icon: LayoutList },
+        { to: `${base}/tasks`, label: 'All Tasks', icon: CheckSquare },
+        { to: `${base}/members`, label: 'Members', icon: Users },
+        { to: `${base}/availability`, label: 'Availability', icon: Clock3 },
+      ]
+    : [];
   return (
     <SelectedProjectContext.Provider value={selected}>
       <div
@@ -87,20 +121,13 @@ export function AppShell() {
             <CheckCheck size={22} />
             TaskFlow
           </Link>
-          <label className="sr-only" htmlFor="mobile-project-picker">
-            Mobile selected project
-          </label>
-          <select
+          <ProjectPicker
             id="mobile-project-picker"
-            value={selected.id}
-            onChange={(e) => switchProject(e.target.value)}
-          >
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
+            label="Mobile selected project"
+            selected={selected}
+            projects={projects}
+            onChange={switchProject}
+          />
         </div>
         <aside className="sidebar">
           <Link to="/my-tasks" className="brand">
@@ -115,23 +142,16 @@ export function AppShell() {
               </NavLink>
             ))}
             <div className="nav-label">PROJECT</div>
-            <label className="sr-only" htmlFor="project-picker">
-              Selected project
-            </label>
-            <select
+            <ProjectPicker
               id="project-picker"
-              value={selected.id}
-              onChange={(e) => {
-                switchProject(e.target.value);
+              label="Selected project"
+              selected={selected}
+              projects={projects}
+              onChange={(id) => {
+                switchProject(id);
                 setOpen(false);
               }}
-            >
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
+            />
             {projectLinks.map(({ to, label, icon: Icon }) => (
               <NavLink
                 end={label === 'All Tasks'}
@@ -145,32 +165,35 @@ export function AppShell() {
             ))}
           </nav>
           <div className="sidebar-footer">
-            <span className="avatar">{initials}</span>
-            <div>
-              <strong>{name}</strong>
-              <small>Authenticated account</small>
-            </div>
-            <Button
-              variant="ghost"
-              disabled={busy}
-              onClick={() => void signOut()}
-            >
-              {busy ? 'Signing out…' : 'Sign out'}
-            </Button>
+            <AccountMenu
+              id="desktop-account-menu"
+              name={name}
+              initials={initials}
+              busy={busy}
+              onEdit={() => setEditProfile(true)}
+              onSignOut={signOut}
+            />
           </div>
         </aside>
         <div className="workspace">
-          <div className="demo-banner">
-            Signed in · Projects, tasks and team members are fictional demo data
-            for Alex Tan · Changes are not saved
+          <div className="workspace-toolbar">
+            <span>Project workspace</span>
+            <div className="workspace-actions">
+              <NotificationBell />
+              <Button variant="ghost" onClick={refresh} disabled={pending}>
+                Refresh data
+              </Button>
+            </div>
           </div>
           <main id="main" tabIndex={-1}>
             {error && <p role="alert">{error}</p>}
-            <Outlet />
+            {catalog.data ? (
+              <Outlet />
+            ) : (
+              <RemoteState state={catalog} retry={refresh} />
+            )}
           </main>
-          <footer className="workspace-footer">
-            TaskFlow · Phase 1 frontend preview
-          </footer>
+          <footer className="workspace-footer">TaskFlow</footer>
         </div>
         {open && (
           <section
@@ -179,39 +202,36 @@ export function AppShell() {
             aria-label="More navigation"
           >
             <h2>Project navigation</h2>
-            <label htmlFor="more-project-picker">Selected project</label>
-            <select
+            <AccountMenu
+              id="mobile-account-menu"
+              name={name}
+              initials={initials}
+              busy={busy}
+              onEdit={() => {
+                setEditProfile(true);
+                setOpen(false);
+              }}
+              onSignOut={signOut}
+            />
+            <ProjectPicker
               id="more-project-picker"
-              value={selected.id}
-              onChange={(e) => {
-                switchProject(e.target.value);
+              label="Selected project"
+              selected={selected}
+              projects={projects}
+              onChange={(id) => {
+                switchProject(id);
                 setOpen(false);
                 moreButton.current?.focus();
               }}
-            >
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
+            />
             <nav aria-label="More project navigation">
-              {projectLinks
-                .filter((link) => link.label !== 'Deadline Calendar')
-                .map(({ to, label, icon: Icon }) => (
-                  <NavLink key={to} to={to} onClick={closeMore}>
-                    <Icon size={20} />
-                    {label}
-                  </NavLink>
-                ))}
+              {projectLinks.map(({ to, label, icon: Icon }) => (
+                <NavLink key={to} to={to} onClick={closeMore}>
+                  <Icon size={20} />
+                  {label}
+                </NavLink>
+              ))}
             </nav>
-            <Button
-              variant="ghost"
-              disabled={busy}
-              onClick={() => void signOut()}
-            >
-              {busy ? 'Signing out…' : 'Sign out'}
-            </Button>
           </section>
         )}
         <nav className="mobile-bottom-nav" aria-label="Mobile navigation">
@@ -223,7 +243,7 @@ export function AppShell() {
             <FolderOpen size={21} />
             <span>Projects</span>
           </NavLink>
-          <NavLink to={`${base}/calendar`} onClick={closeMore}>
+          <NavLink to="/calendar" onClick={closeMore}>
             <CalendarDays size={21} />
             <span>Calendar</span>
           </NavLink>
@@ -233,12 +253,7 @@ export function AppShell() {
             aria-expanded={open}
             aria-controls="mobile-more"
             className={
-              open ||
-              projectLinks.some(
-                (link) =>
-                  link.label !== 'Deadline Calendar' &&
-                  pathname.startsWith(link.to),
-              )
+              open || projectLinks.some((link) => pathname.startsWith(link.to))
                 ? 'active'
                 : ''
             }
@@ -248,6 +263,44 @@ export function AppShell() {
             <span>More</span>
           </button>
         </nav>
+        {editProfile && (
+          <Modal
+            title="Edit display name"
+            onClose={() => setEditProfile(false)}
+          >
+            <form
+              className="editor-form"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const form = new FormData(e.currentTarget);
+                if (
+                  await mutate(
+                    () =>
+                      updateDisplayName(
+                        session!.user.id,
+                        text(form.get('display_name'), 200, true),
+                      ),
+                    'Display name updated.',
+                  )
+                )
+                  setEditProfile(false);
+              }}
+            >
+              <label>
+                Display name
+                <input
+                  name="display_name"
+                  required
+                  maxLength={200}
+                  defaultValue={catalog.data?.profile.display_name ?? ''}
+                />
+              </label>
+              <p>Google manages your sign-in identity and email.</p>
+              <Button disabled={pending}>Save name</Button>
+            </form>
+          </Modal>
+        )}
+        <FeedbackToast />
       </div>
     </SelectedProjectContext.Provider>
   );

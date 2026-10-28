@@ -1,74 +1,93 @@
-import { people, projects } from '@/features/projects/mock-data';
-import { statusLabels } from './mock-data';
+import type { Member } from '@/types/database';
+import { useWorkspace } from '@/app/workspace-context';
+import { statusLabels, priorityLabels } from './queries';
+import type { Filters } from './filter-state';
 export function TaskFilters({
-  status,
-  setStatus,
-  person,
-  setPerson,
-  project,
-  setProject,
-  search,
-  setSearch,
+  value,
+  onChange,
+  members,
+  global = false,
 }: {
-  status: string;
-  setStatus: (v: string) => void;
-  person?: string;
-  setPerson?: (v: string) => void;
-  project?: string;
-  setProject?: (v: string) => void;
-  search: string;
-  setSearch: (v: string) => void;
+  value: Filters;
+  onChange: (v: Filters) => void;
+  members?: Member[];
+  global?: boolean;
 }) {
+  const { catalog } = useWorkspace();
+  const set = (key: keyof Filters, v: string) =>
+    onChange({ ...value, [key]: v });
   return (
-    <div className="toolbar">
+    <div className="toolbar task-filters">
       <input
-        aria-label="Search tasks"
         type="search"
+        aria-label="Search tasks"
         placeholder="Search tasks…"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
+        value={value.search}
+        onChange={(e) => set('search', e.target.value)}
       />
       <select
         aria-label="Filter by status"
-        value={status}
-        onChange={(e) => setStatus(e.target.value)}
+        value={value.status}
+        onChange={(e) => set('status', e.target.value)}
       >
         <option value="all">All statuses</option>
-        {Object.entries(statusLabels).map(([key, label]) => (
-          <option key={key} value={key}>
+        {Object.entries(statusLabels).map(([id, label]) => (
+          <option value={id} key={id}>
             {label}
           </option>
         ))}
       </select>
-      {setPerson && (
+      <select
+        aria-label="Filter by priority"
+        value={value.priority}
+        onChange={(e) => set('priority', e.target.value)}
+      >
+        <option value="all">All priorities</option>
+        {Object.entries(priorityLabels).map(([id, label]) => (
+          <option value={id} key={id}>
+            {label}
+          </option>
+        ))}
+      </select>
+      {members && (
         <select
           aria-label="Filter by assignee"
-          value={person}
-          onChange={(e) => setPerson(e.target.value)}
+          value={value.person}
+          onChange={(e) => set('person', e.target.value)}
         >
           <option value="all">All assignees</option>
           <option value="unassigned">Unassigned</option>
-          {people.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
+          {members.map((m) => (
+            <option key={m.user_id} value={m.user_id}>
+              {m.display_name}
             </option>
           ))}
         </select>
       )}
-      {setProject && (
+      {global && (
         <select
           aria-label="Filter by project"
-          value={project}
-          onChange={(e) => setProject(e.target.value)}
+          value={value.project}
+          onChange={(e) => set('project', e.target.value)}
         >
           <option value="all">All projects</option>
-          {projects.map((p) => (
+          {catalog.data!.projects.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name}
             </option>
           ))}
         </select>
       )}
+      <select
+        aria-label="Sort tasks"
+        value={value.sort}
+        onChange={(e) => set('sort', e.target.value)}
+      >
+        <option value="due">Deadline</option>
+        <option value="priority">Priority</option>
+        <option value="title">Title</option>
+        <option value="position">Section order</option>
+      </select>
     </div>
   );
 }

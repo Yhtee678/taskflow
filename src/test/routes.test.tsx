@@ -1,12 +1,13 @@
-import { render, screen, within } from '@testing-library/react';
+import './data-api-mocks';
+import { render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { describe, it, expect } from 'vitest';
 import { routes } from '@/app/router';
 import { AuthContext } from '@/features/auth/auth-context';
 import { testSession } from './auth-fixtures';
-function visit(path: string) {
-  return render(
+async function visit(path: string) {
+  const view = render(
     <AuthContext.Provider
       value={{
         session: path === '/login' ? null : testSession,
@@ -24,11 +25,15 @@ function visit(path: string) {
       />
     </AuthContext.Provider>,
   );
+  await waitFor(() =>
+    expect(screen.queryAllByText('Loading…')).toHaveLength(0),
+  );
+  return view;
 }
 describe('Phase 1 routes', () => {
   it('changes heading context on My Tasks without filtering global work', async () => {
     const user = userEvent.setup();
-    visit('/my-tasks');
+    await visit('/my-tasks');
     expect(screen.getByLabelText('Current project')).toHaveTextContent(
       'Website Redesign',
     );
@@ -46,21 +51,25 @@ describe('Phase 1 routes', () => {
       screen.getByText('Your assigned work across all projects.'),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: 'Map the key user flows' }),
+      within(screen.getByRole('table')).getByRole('link', {
+        name: 'Map the key user flows',
+      }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: 'Prepare interview questions' }),
+      within(screen.getByRole('table')).getByRole('link', {
+        name: 'Prepare interview questions',
+      }),
     ).toBeInTheDocument();
     const navigation = screen.getByRole('navigation', {
       name: 'Mobile navigation',
     });
     expect(
       within(navigation).getByRole('link', { name: 'Calendar' }),
-    ).toHaveAttribute('href', '/projects/research/calendar');
+    ).toHaveAttribute('href', '/calendar');
   });
   it('opens More with the keyboard, exposes project routes, and restores focus on Escape', async () => {
     const user = userEvent.setup();
-    visit('/projects/research/tasks');
+    await visit('/projects/research/tasks');
     const navigation = screen.getByRole('navigation', {
       name: 'Mobile navigation',
     });
@@ -94,7 +103,7 @@ describe('Phase 1 routes', () => {
   });
   it('navigates through More and closes the panel', async () => {
     const user = userEvent.setup();
-    visit('/my-tasks');
+    await visit('/my-tasks');
     await user.click(screen.getByRole('button', { name: 'More' }));
     const panel = screen.getByRole('region', { name: 'More navigation' });
     await user.click(within(panel).getByRole('link', { name: 'Availability' }));
@@ -118,21 +127,25 @@ describe('Phase 1 routes', () => {
     ['/projects/website/tasks', 'All Tasks'],
     ['/projects/website/tasks/user-flows', 'Map the key user flows'],
     ['/projects/website/members', 'Project Members'],
-    ['/projects/website/calendar', 'Deadline Calendar'],
+    ['/projects/website/calendar', 'Calendar'],
     ['/projects/website/availability', 'Availability'],
   ])('renders %s', async (path, heading) => {
-    visit(path);
+    await visit(path);
     expect(
       await screen.findByRole('heading', { name: heading, level: 1 }),
     ).toBeInTheDocument();
   });
-  it('shows personal tasks across projects, excluding other assignees', () => {
-    visit('/my-tasks');
+  it('shows personal tasks across projects, excluding other assignees', async () => {
+    await visit('/my-tasks');
     expect(
-      screen.getByRole('link', { name: 'Prepare interview questions' }),
+      within(screen.getByRole('table')).getByRole('link', {
+        name: 'Prepare interview questions',
+      }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: 'Map the key user flows' }),
+      within(screen.getByRole('table')).getByRole('link', {
+        name: 'Map the key user flows',
+      }),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('link', { name: 'Create homepage wireframes' }),
@@ -140,7 +153,7 @@ describe('Phase 1 routes', () => {
   });
   it('filters tasks and provides a recoverable empty state', async () => {
     const user = userEvent.setup();
-    visit('/projects/website/tasks');
+    await visit('/projects/website/tasks');
     await user.selectOptions(
       screen.getByLabelText('Filter by assignee'),
       'brandon',
@@ -152,7 +165,7 @@ describe('Phase 1 routes', () => {
       screen.queryByRole('link', { name: 'Map the key user flows' }),
     ).not.toBeInTheDocument();
     await user.type(screen.getByRole('searchbox'), 'no-match');
-    expect(screen.getByText('No tasks found')).toBeInTheDocument();
+    expect(screen.getAllByText('No tasks found')[0]).toBeInTheDocument();
     await user.clear(screen.getByRole('searchbox'));
     expect(
       screen.getByRole('link', { name: 'Create homepage wireframes' }),
@@ -160,7 +173,7 @@ describe('Phase 1 routes', () => {
   });
   it('switches project context and navigation', async () => {
     const user = userEvent.setup();
-    visit('/projects/website/tasks');
+    await visit('/projects/website/tasks');
     await user.selectOptions(
       screen.getByLabelText('Selected project'),
       'research',
@@ -177,11 +190,11 @@ describe('Phase 1 routes', () => {
     ).not.toBeInTheDocument();
   });
   it.each([
-    ['/projects/missing/tasks', 'Project not found'],
+    ['/projects/missing/tasks', 'Project unavailable'],
     ['/projects/research/tasks/user-flows', 'Task not found'],
     ['/unknown', 'Page not found'],
-  ])('handles invalid deep link %s', (path, title) => {
-    visit(path);
+  ])('handles invalid deep link %s', async (path, title) => {
+    await visit(path);
     expect(screen.getByRole('heading', { name: title })).toBeInTheDocument();
     expect(
       screen.queryByRole('heading', { name: 'Map the key user flows' }),
@@ -189,9 +202,11 @@ describe('Phase 1 routes', () => {
   });
   it('navigates from personal tasks to details and back', async () => {
     const user = userEvent.setup();
-    visit('/my-tasks');
+    await visit('/my-tasks');
     await user.click(
-      screen.getByRole('link', { name: 'Map the key user flows' }),
+      within(screen.getByRole('table')).getByRole('link', {
+        name: 'Map the key user flows',
+      }),
     );
     expect(
       await screen.findByRole('heading', {
@@ -206,14 +221,25 @@ describe('Phase 1 routes', () => {
   });
   it('navigates deadline months', async () => {
     const user = userEvent.setup();
-    visit('/projects/website/calendar');
-    await user.click(screen.getByRole('button', { name: 'Next month' }));
+    await visit('/projects/website/calendar');
+    await user.click(await screen.findByRole('button', { name: 'Next month' }));
     expect(
-      screen.getByRole('heading', { name: 'November 2026' }),
+      screen.getByRole('heading', {
+        name: new Date(
+          new Date().getFullYear(),
+          new Date().getMonth() + 1,
+          1,
+        ).toLocaleDateString(undefined, { month: 'long', year: 'numeric' }),
+      }),
     ).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Previous month' }));
     expect(
-      screen.getByRole('heading', { name: 'October 2026' }),
+      screen.getByRole('heading', {
+        name: new Date().toLocaleDateString(undefined, {
+          month: 'long',
+          year: 'numeric',
+        }),
+      }),
     ).toBeInTheDocument();
   });
 });

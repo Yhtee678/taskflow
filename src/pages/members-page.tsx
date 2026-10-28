@@ -1,24 +1,35 @@
+import { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import type { Project } from '@/types/domain';
-import { people } from '@/features/projects/mock-data';
-import { tasks } from '@/features/tasks/mock-data';
+import type { ProjectBundle } from '@/types/database';
+import { useAuth } from '@/features/auth/auth-context';
+import { useWorkspace } from '@/app/workspace-context';
+import { addMember, removeMember } from '@/features/members/queries';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
+import { Modal } from '@/components/ui/modal';
 export function MembersPage() {
-  const project = useOutletContext<Project>();
+  const bundle = useOutletContext<ProjectBundle>();
+  const { session } = useAuth();
+  const { mutate, pending } = useWorkspace();
+  const [adding, setAdding] = useState(false);
+  const leader = bundle.members.some(
+    (m) => m.user_id === session!.user.id && m.role === 'leader',
+  );
   return (
     <>
       <PageHeader
         title="Project Members"
-        description={`${project.name} · ${project.members.length} members`}
+        description={`${bundle.project.name} · ${bundle.members.length} members`}
       >
-        <Button disabled title="Leader-only membership actions are deferred">
-          Add member
-        </Button>
+        {leader && (
+          <Button disabled={pending} onClick={() => setAdding(true)}>
+            Add member
+          </Button>
+        )}
       </PageHeader>
       <p className="helper">
-        All members can collaborate on project tasks. Only the project leader
-        manages membership.
+        Members can edit all project tasks. Only the leader manages membership.
+        Add existing registered users by email; no invitation is sent.
       </p>
       <div
         className="table-scroll"
@@ -37,56 +48,82 @@ export function MembersPage() {
             </tr>
           </thead>
           <tbody>
-            {people
-              .filter((p) => project.members.includes(p.id))
-              .map((p) => (
-                <tr key={p.id}>
-                  <td>
-                    <span className="person">
-                      <span className="avatar">{p.initials}</span>
-                      <span>
-                        {p.name}
-                        {p.id === 'alex' ? ' (you)' : ''}
-                      </span>
-                    </span>
-                  </td>
-                  <td>{p.id === 'alex' ? 'Leader' : 'Member'}</td>
-                  <td>
-                    {
-                      tasks.filter(
-                        (t) =>
-                          t.projectId === project.id && t.assignee === p.id,
-                      ).length
-                    }
-                  </td>
-                  <td>
-                    {
-                      tasks.filter(
-                        (t) =>
-                          t.projectId === project.id &&
-                          t.assignee === p.id &&
-                          t.status === 'done',
-                      ).length
-                    }
-                  </td>
-                  <td>
-                    {p.id === 'alex' ? (
-                      <span className="muted">Project creator</span>
-                    ) : (
-                      <Button
-                        variant="ghost"
-                        disabled
-                        title="Membership changes are deferred"
-                      >
-                        Remove
-                      </Button>
-                    )}
-                  </td>
-                </tr>
-              ))}
+            {bundle.members.map((m) => (
+              <tr key={m.user_id}>
+                <td>
+                  {m.display_name}
+                  {m.user_id === session!.user.id ? ' (you)' : ''}
+                </td>
+                <td>{m.role === 'leader' ? 'Leader' : 'Member'}</td>
+                <td>
+                  {
+                    bundle.tasks.filter((t) => t.assignee_id === m.user_id)
+                      .length
+                  }
+                </td>
+                <td>
+                  {
+                    bundle.tasks.filter(
+                      (t) => t.assignee_id === m.user_id && t.status === 'done',
+                    ).length
+                  }
+                </td>
+                <td>
+                  {m.role === 'leader' ? (
+                    <span className="muted">Project creator</span>
+                  ) : leader ? (
+                    <Button
+                      variant="ghost"
+                      disabled={pending}
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            `Remove ${m.display_name}? Their tasks will be unassigned and availability deleted.`,
+                          )
+                        )
+                          void mutate(
+                            () => removeMember(bundle.project.id, m.user_id),
+                            'Member removed.',
+                          );
+                      }}
+                    >
+                      Remove
+                    </Button>
+                  ) : (
+                    '—'
+                  )}
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
+      {adding && (
+        <Modal title="Add registered member" onClose={() => setAdding(false)}>
+          <form
+            className="editor-form"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const email = String(
+                new FormData(e.currentTarget).get('email') ?? '',
+              ).trim();
+              if (
+                await mutate(
+                  () => addMember(bundle.project.id, email),
+                  'Member added.',
+                )
+              )
+                setAdding(false);
+            }}
+          >
+            <label>
+              Registered email
+              <input name="email" type="email" required maxLength={320} />
+            </label>
+            <Button disabled={pending}>Add member</Button>
+          </form>
+        </Modal>
+      )}
     </>
   );
 }
