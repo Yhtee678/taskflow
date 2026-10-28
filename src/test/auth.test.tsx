@@ -98,6 +98,40 @@ describe('Supabase authentication integration (SDK mocked)', () => {
       options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
   });
+  it.each([
+    'https://taskflow.example',
+    'https://preview.taskflow.example',
+    'http://localhost:5173',
+    'http://127.0.0.1:4173',
+  ])('uses the active origin for OAuth on %s', async (origin) => {
+    const actualWindow = window;
+    // Simulate origins without navigating jsdom or making network calls.
+    vi.stubGlobal(
+      'window',
+      new Proxy(actualWindow, {
+        get(target, property) {
+          return property === 'location'
+            ? new URL('/login?next=https://untrusted.example', origin)
+            : Reflect.get(target, property);
+        },
+      }),
+    );
+    let view: ReturnType<typeof visit> | undefined;
+    try {
+      const user = userEvent.setup();
+      view = visit('/login');
+      await user.click(
+        await screen.findByRole('button', { name: 'Continue with Google' }),
+      );
+      expect(signInWithOAuth).toHaveBeenCalledWith({
+        provider: 'google',
+        options: { redirectTo: `${origin}/auth/callback` },
+      });
+    } finally {
+      view?.unmount();
+      vi.unstubAllGlobals();
+    }
+  });
   it('shows OAuth errors and allows another attempt', async () => {
     const user = userEvent.setup();
     signInWithOAuth.mockResolvedValueOnce({ error: new Error('failure') });
