@@ -25,6 +25,7 @@ import { myTasksBannerState } from '@/features/tasks/banner-state';
 import { useLiveTime } from '@/features/tasks/use-live-time';
 import type { PersonalScheduleSnapshot } from '@/features/calendar/mini-calendar';
 import type { TaskRow } from '@/types/database';
+import { loadCatalog } from '@/features/projects/queries';
 function mount() {
   const router = createMemoryRouter(routes, { initialEntries: ['/my-tasks'] });
   const view = render(
@@ -53,6 +54,70 @@ async function visit() {
   return view;
 }
 describe('My Tasks completion shortcuts', () => {
+  it('refreshes on tab focus without replacing the loaded page or losing local state', async () => {
+    const user = userEvent.setup();
+    await visit();
+    const heading = screen.getByRole('heading', { name: 'My Tasks', level: 1 });
+    const mini = screen.getByRole('complementary', {
+      name: 'Dashboard calendar',
+    });
+    await user.click(
+      within(mini).getByRole('button', { name: 'Next mini calendar month' }),
+    );
+    await waitFor(() =>
+      expect(within(mini).queryByText('Loading…')).not.toBeInTheDocument(),
+    );
+    const month = within(mini).getByRole('heading', { level: 2 }).textContent;
+    await user.type(
+      screen.getByRole('searchbox', { name: 'Search tasks' }),
+      'Map',
+    );
+    let finishCatalog!: (
+      value: Awaited<ReturnType<typeof loadCatalog>>,
+    ) => void;
+    let finishTasks!: (value: Awaited<ReturnType<typeof loadMyTasks>>) => void;
+    const catalog = await loadCatalog(testSession.user.id);
+    const originalTasks = await loadMyTasks(testSession.user.id);
+    vi.mocked(loadCatalog).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishCatalog = resolve;
+        }),
+    );
+    vi.mocked(loadMyTasks).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishTasks = resolve;
+        }),
+    );
+    const calls = vi.mocked(loadMyTasks).mock.calls.length;
+    fireEvent.focus(window);
+    expect(loadMyTasks).toHaveBeenCalledTimes(calls + 1);
+    expect(screen.getByRole('heading', { name: 'My Tasks', level: 1 })).toBe(
+      heading,
+    );
+    expect(screen.queryByText('Loading…')).not.toBeInTheDocument();
+    expect(screen.getByRole('searchbox')).toHaveValue('Map');
+    expect(within(mini).getByRole('heading', { level: 2 })).toHaveTextContent(
+      month!,
+    );
+    const updated = originalTasks
+      .filter((task) => task.assignee_id === testSession.user.id)
+      .map((task) => ({
+        ...task,
+        title: `Map updated by teammate: ${task.title}`,
+      }));
+    await act(async () => {
+      finishCatalog(catalog);
+      finishTasks(updated);
+    });
+    expect(screen.getByRole('heading', { name: 'My Tasks', level: 1 })).toBe(
+      heading,
+    );
+    expect(
+      screen.getAllByText(/Map updated by teammate:/).length,
+    ).toBeGreaterThan(0);
+  });
   it.each([
     ['todo', 'done'],
     ['in_progress', 'done'],

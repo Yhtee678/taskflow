@@ -4,10 +4,20 @@ import { useAuth } from '@/features/auth/auth-context';
 import { loadCatalog } from '@/features/projects/queries';
 import { AccessError } from '@/lib/data-client';
 import { AppShell } from '@/components/layout/app-shell';
-import { useRemote } from './use-remote';
+import { BackgroundRefreshContext, useRemote } from './use-remote';
 import { WorkspaceContext } from './workspace-context';
 import { initialFilters } from '@/features/tasks/filter-state';
 export function AuthenticatedApp() {
+  const [backgroundRefresh, setBackgroundRefresh] = useState(0);
+  return (
+    <BackgroundRefreshContext.Provider value={backgroundRefresh}>
+      <Workspace onFocusRefresh={() => setBackgroundRefresh((n) => n + 1)} />
+    </BackgroundRefreshContext.Provider>
+  );
+}
+function Workspace({ onFocusRefresh }: { onFocusRefresh: () => void }) {
+  const focusRefresh = useRef(onFocusRefresh);
+  focusRefresh.current = onFocusRefresh;
   const { session } = useAuth();
   const userId = session!.user.id;
   const location = useLocation();
@@ -35,7 +45,7 @@ export function AuthenticatedApp() {
   }, [feedback]);
   useEffect(() => {
     const focus = () => {
-      if (!mutationInFlight.current) setRevision((n) => n + 1);
+      if (!mutationInFlight.current) focusRefresh.current();
     };
     window.addEventListener('focus', focus);
     return () => window.removeEventListener('focus', focus);

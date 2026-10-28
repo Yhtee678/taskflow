@@ -7,6 +7,8 @@ import {
   testSlots,
 } from './data-api-mocks';
 import {
+  act,
+  fireEvent,
   render,
   screen,
   within,
@@ -30,6 +32,7 @@ import {
 } from '@/features/tasks/queries';
 import { saveSlot } from '@/features/availability/queries';
 import { addMember } from '@/features/members/queries';
+import { AccessError } from '@/lib/data-client';
 async function visit(path: string) {
   render(
     <AuthContext.Provider
@@ -54,6 +57,44 @@ async function visit(path: string) {
   );
 }
 describe('real-data UI integration with mocked feature queries', () => {
+  it('keeps project content mounted on focus and removes it when membership is revoked', async () => {
+    await visit('/projects/website/tasks');
+    const title = screen.getByRole('heading', { name: 'All Tasks', level: 1 });
+    let reject!: (error: Error) => void;
+    vi.mocked(loadProject).mockImplementationOnce(
+      () =>
+        new Promise((_resolve, fail) => {
+          reject = fail;
+        }),
+    );
+    fireEvent.focus(window);
+    expect(screen.getByRole('heading', { name: 'All Tasks', level: 1 })).toBe(
+      title,
+    );
+    expect(screen.queryByText('Loading…')).not.toBeInTheDocument();
+    await act(async () => reject(new AccessError()));
+    expect(
+      screen.queryByRole('heading', { name: 'All Tasks', level: 1 }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Project unavailable' }),
+    ).toBeInTheDocument();
+  });
+  it('shows updated project deadlines after a background refresh without remounting Calendar', async () => {
+    await visit('/calendar?project=website');
+    const heading = screen.getByRole('heading', { name: 'Calendar', level: 1 });
+    testTasks.find((task) => task.project_id === 'website')!.title =
+      'Updated project deadline from teammate';
+    fireEvent.focus(window);
+    await waitFor(() =>
+      expect(
+        screen.getAllByText('Updated project deadline from teammate').length,
+      ).toBeGreaterThan(0),
+    );
+    expect(screen.getByRole('heading', { name: 'Calendar', level: 1 })).toBe(
+      heading,
+    );
+  });
   it('allows leaders to add members when the project already has six members', async () => {
     const user = userEvent.setup();
     const projectId = testProjects[0].id;

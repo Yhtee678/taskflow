@@ -207,6 +207,33 @@ describe('Supabase authentication integration (SDK mocked)', () => {
       await screen.findByRole('heading', { name: 'Sign in to TaskFlow' }),
     ).toBeInTheDocument();
   });
+  it('keeps the loaded page mounted across token refresh and same-user sign-in events', async () => {
+    getSession.mockResolvedValue({
+      data: { session: testSession },
+      error: null,
+    });
+    visit();
+    const heading = await screen.findByRole('heading', {
+      name: 'My Tasks',
+      level: 1,
+    });
+    act(() =>
+      listener('TOKEN_REFRESHED', {
+        ...testSession,
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+      }),
+    );
+    expect(screen.getByRole('heading', { name: 'My Tasks', level: 1 })).toBe(
+      heading,
+    );
+    act(() => listener('SIGNED_IN', { ...testSession }));
+    expect(screen.getByRole('heading', { name: 'My Tasks', level: 1 })).toBe(
+      heading,
+    );
+    expect(
+      screen.queryByText('Checking your session…'),
+    ).not.toBeInTheDocument();
+  });
   it('does not overwrite a newer auth event with a stale restore result', async () => {
     let resolve!: (value: {
       data: { session: Session | null };

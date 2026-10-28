@@ -1,0 +1,9 @@
+# Browser-tab synchronization
+
+Returning to a browser tab previously incremented the workspace's explicit data revision. Every query cleared its data, including the catalog that gates the page outlet. That unmounted the page and discarded local state while displaying loading placeholders. No full-document reload was involved.
+
+Focus now advances a separate background-refresh context. Existing requests still run against Supabase with the current SDK-managed session. `useRemote` retains a successful snapshot only while refreshing the same resource key, without entering the initial-loading state. New results replace it. A changed resource key clears the snapshot immediately; errors also clear it, including authorization failures. Late responses from cancelled requests are ignored. Sign-out and user changes still unmount the authenticated tree. There is no shared cross-user cache, new persistence, polling, or change to Supabase token refresh.
+
+Explicit Refresh and mutation invalidation retain their previous behavior. Focus during a mutation remains suppressed because that mutation performs its own invalidation. Project Calendar renders deadlines from the latest project-loader snapshot so keeping the component mounted does not retain an obsolete copy.
+
+Automated tests use mocked APIs and auth events to check retained page identity, selected calendar month and search state, refreshed teammate data, same-user token-refresh events, revoked access, and stale-response isolation. These do not verify actual background-tab throttling, network recovery or real token renewal. Manually test an immediate return, a return after 30 seconds and several minutes, returning after real token renewal, two-account changes/removal, and sign-out/sign-in. Confirm that focus requests remain in the Network panel while existing content stays visible until results arrive; initial loads and failed authorization checks should still show their existing loading/error states.

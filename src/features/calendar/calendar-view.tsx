@@ -44,7 +44,9 @@ export function CalendarView({ bundle }: { bundle?: ProjectBundle }) {
     },
   );
   const data = state.data;
-  const visible = (data?.tasks ?? []).filter(
+  // The project loader refreshes independently; use its latest task snapshot.
+  const currentTasks = bundle?.tasks ?? data?.tasks ?? [];
+  const visible = currentTasks.filter(
     (t) => !bundle || !mine || t.assignee_id === session!.user.id,
   );
   const next = new Date(
@@ -114,7 +116,7 @@ export function CalendarView({ bundle }: { bundle?: ProjectBundle }) {
       </>
     );
   }
-  const reminders = (data?.tasks ?? [])
+  const reminders = currentTasks
     .filter((t) => t.assignee_id === session!.user.id && t.status !== 'done')
     .sort((a, b) => {
       const rank = { high: 0, normal: 1, low: 2 };
